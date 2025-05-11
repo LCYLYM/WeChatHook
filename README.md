@@ -5,6 +5,7 @@
 ### 最新版已适配3.9.12.51
 ### 最新版已适配3.9.12.51
 ### 最新版已适配3.9.12.51
+### 已支持视频号下载
 WeChatHook 是一个功能强大的 Python 微信机器人框架，基于 DLL 注入技术构建，支持丰富的接口和高扩展性。通过多线程消息处理，它能够高效应对大量消息，极大地提升你的开发效率。无论是处理复杂任务还是实现个性化需求！最新版已适配3.9.12.51
 
 支持的接口
@@ -92,7 +93,7 @@ WeChatHook 是一个功能强大的 Python 微信机器人框架，基于 DLL �
 82. 添加好友
 
 ## 微信版本下载
-- [WeChatSetup3.9.5.81.exe](http://oss.zuoyu.top/WeChatSetup-3.9.5.81.exe)
+- [WeChatSetup3.9.5.81.exe](https://github.com/tom-snow/wechat-windows-versions/releases/download/v3.9.5.81/WeChatSetup-3.9.5.81.exe)
 
 ## 安装
 
