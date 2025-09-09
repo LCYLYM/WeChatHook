@@ -5,7 +5,7 @@
   "cleanup_interval_hours": 24,
   "log_level": "INFO",
   "alert_config": {
-    "enable_realtime_alerts": true,
+    "enable_realtime_alerts": false,
     "urgency_threshold": 6,
     "max_context_messages": 10,
     "target_user": "your_wechat_id_here"

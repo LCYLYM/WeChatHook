@@ -32,7 +32,9 @@ class WeChatSummaryBot:
     
     def __init__(self, test_mode: bool = False):
         self.test_mode = test_mode
-        self.config_manager = ConfigManager()
+        # 确保配置文件路径正确
+        config_file = "./wechat_summary_bot/config/bot_config.json"
+        self.config_manager = ConfigManager(config_file)
         self.config = self.config_manager.config
         
         # 初始化组件
@@ -93,12 +95,18 @@ class WeChatSummaryBot:
                 self.bot = None
             else:
                 try:
-                    self.bot = Bot(
-                        on_login=self.on_login,
-                        on_start=self.on_start,
-                        on_stop=self.on_stop
-                    )
-                    logger.info("微信机器人初始化完成")
+                    # 检查运行环境
+                    import platform
+                    if platform.system() != "Windows":
+                        logger.warning("检测到非Windows环境，跳过微信机器人初始化")
+                        self.bot = None
+                    else:
+                        self.bot = Bot(
+                            on_login=self.on_login,
+                            on_start=self.on_start,
+                            on_stop=self.on_stop
+                        )
+                        logger.info("微信机器人初始化完成")
                 except Exception as e:
                     logger.error(f"微信机器人初始化失败: {e}")
                     logger.error("可能原因:")
@@ -106,7 +114,14 @@ class WeChatSummaryBot:
                     logger.error("  2. start-wechat.exe 或 wxhook.dll 文件损坏")
                     logger.error("  3. 运行环境不支持（仅支持Windows）")
                     logger.error("  4. 端口被占用")
-                    raise Exception(f"微信机器人初始化失败: {e}")
+                    
+                    # 如果是因为环境问题，降级为测试模式
+                    import platform
+                    if platform.system() != "Windows":
+                        logger.info("非Windows环境，自动切换到兼容模式")
+                        self.bot = None
+                    else:
+                        raise Exception(f"微信机器人初始化失败: {e}")
             
             # 初始化实时推送引擎
             if self.ai_service and self.bot:
@@ -276,8 +291,17 @@ class WeChatSummaryBot:
             self.start_scheduler()
             
             # 启动微信机器人（阻塞运行）
-            logger.info("启动微信机器人...")
-            self.bot.run()
+            if self.bot:
+                logger.info("启动微信机器人...")
+                self.bot.run()
+            else:
+                logger.info("兼容模式：微信机器人未初始化，运行其他功能...")
+                # 在没有微信机器人的情况下，保持程序运行以便测试其他功能
+                try:
+                    while self.running:
+                        time.sleep(10)
+                except KeyboardInterrupt:
+                    logger.info("收到中断信号")
             
         except KeyboardInterrupt:
             logger.info("收到中断信号，准备关闭...")

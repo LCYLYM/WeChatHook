@@ -73,8 +73,36 @@ class ConfigManager:
     
     def create_default_config(self) -> BotConfig:
         """创建默认配置"""
-        config = BotConfig()
+        from ..models.data_models import AIConfig, AlertConfig
+        
+        # 创建带有合理默认值的配置
+        alert_config = AlertConfig(
+            enable_realtime_alerts=False,  # 默认禁用推送避免验证错误
+            urgency_threshold=6,
+            max_context_messages=10,
+            target_user="demo_user"  # 使用占位符值
+        )
+        
+        ai_config = AIConfig(
+            openai_api_key="sk-demo",  # 使用占位符值
+            openai_base_url="https://api.openai.com/v1",
+            model="gpt-4",
+            max_tokens=2000,
+            temperature=0.3
+        )
+        
+        config = BotConfig(
+            database_path="./data/wechat_bot.db",
+            data_retention_days=180,
+            daily_summary_time="20:00",
+            cleanup_interval_hours=24,
+            log_level="INFO",
+            alert_config=alert_config,
+            ai_config=ai_config
+        )
+        
         self.save_config(config)
+        logger.info("默认配置已创建，请编辑配置文件设置正确的API Key和目标用户")
         return config
     
     def save_config(self, config: BotConfig = None) -> bool:
@@ -154,11 +182,14 @@ class ConfigManager:
         issues = {}
         
         # 验证AI配置
-        if not self.config.ai_config.openai_api_key:
+        api_key = self.config.ai_config.openai_api_key
+        if not api_key or api_key in ['your_openai_api_key_here', 'sk-demo', 'test_key']:
             issues['ai_api_key'] = "OpenAI API Key未配置"
         
         # 验证推送配置
-        if self.config.alert_config.enable_realtime_alerts and not self.config.alert_config.target_user:
+        target_user = self.config.alert_config.target_user
+        if (self.config.alert_config.enable_realtime_alerts and 
+            (not target_user or target_user in ['your_wechat_id_here', 'demo_user', 'test_user'])):
             issues['target_user'] = "启用了实时推送但未设置目标用户"
         
         # 验证数据库路径
@@ -192,7 +223,7 @@ class ConfigManager:
             "cleanup_interval_hours": 24,
             "log_level": "INFO",
             "alert_config": {
-                "enable_realtime_alerts": True,
+                "enable_realtime_alerts": False,
                 "urgency_threshold": 6,
                 "max_context_messages": 10,
                 "target_user": "your_wechat_id_here"
@@ -212,6 +243,13 @@ class ConfigManager:
             with open(template_file, 'w', encoding='utf-8') as f:
                 json.dump(template, f, ensure_ascii=False, indent=2)
             logger.info(f"配置模板创建成功: {template_file}")
+            
+            # 同时创建实际配置文件
+            if not os.path.exists(self.config_file):
+                with open(self.config_file, 'w', encoding='utf-8') as f:
+                    json.dump(template, f, ensure_ascii=False, indent=2)
+                logger.info(f"默认配置文件创建成功: {self.config_file}")
+            
             return template_file
         except Exception as e:
             logger.error(f"创建配置模板失败: {e}")
