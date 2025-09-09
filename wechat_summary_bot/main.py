@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 class WeChatSummaryBot:
     """微信群聊总结机器人主类"""
     
-    def __init__(self):
+    def __init__(self, test_mode: bool = False):
+        self.test_mode = test_mode
         self.config_manager = ConfigManager()
         self.config = self.config_manager.config
         
@@ -87,27 +88,46 @@ class WeChatSummaryBot:
                 self.ai_service = None
             
             # 初始化微信机器人
-            self.bot = Bot(
-                on_login=self.on_login,
-                on_start=self.on_start,
-                on_stop=self.on_stop
-            )
-            logger.info("微信机器人初始化完成")
+            if self.test_mode:
+                logger.info("测试模式：跳过微信机器人初始化")
+                self.bot = None
+            else:
+                try:
+                    self.bot = Bot(
+                        on_login=self.on_login,
+                        on_start=self.on_start,
+                        on_stop=self.on_stop
+                    )
+                    logger.info("微信机器人初始化完成")
+                except Exception as e:
+                    logger.error(f"微信机器人初始化失败: {e}")
+                    logger.error("可能原因:")
+                    logger.error("  1. 微信PC版未启动或无法找到")
+                    logger.error("  2. start-wechat.exe 或 wxhook.dll 文件损坏")
+                    logger.error("  3. 运行环境不支持（仅支持Windows）")
+                    logger.error("  4. 端口被占用")
+                    raise Exception(f"微信机器人初始化失败: {e}")
             
             # 初始化实时推送引擎
-            if self.ai_service:
+            if self.ai_service and self.bot:
                 self.alert_engine = RealtimeAlertEngine(
                     self.bot, self.db, self.ai_service, self.config.alert_config
                 )
                 logger.info("实时推送引擎初始化完成")
             else:
-                logger.warning("AI服务不可用，实时推送功能已禁用")
+                if not self.ai_service:
+                    logger.warning("AI服务不可用，实时推送功能已禁用")
+                if not self.bot:
+                    logger.warning("微信机器人不可用，实时推送功能已禁用")
             
             # 初始化消息收集器
-            self.message_collector = MessageCollector(
-                self.bot, self.db, self.dedup_engine, self.alert_engine
-            )
-            logger.info("消息收集器初始化完成")
+            if self.bot:
+                self.message_collector = MessageCollector(
+                    self.bot, self.db, self.dedup_engine, self.alert_engine
+                )
+                logger.info("消息收集器初始化完成")
+            else:
+                logger.warning("微信机器人不可用，消息收集器未初始化")
             
             # 初始化每日总结生成器
             if self.ai_service:
@@ -115,17 +135,21 @@ class WeChatSummaryBot:
                     self.bot, self.db, self.ai_service, self.config
                 )
                 logger.info("每日总结生成器初始化完成")
+            else:
+                logger.warning("AI服务不可用，每日总结功能已禁用")
             
             # 初始化任务调度器
             self.task_scheduler = TaskScheduler()
             self.setup_scheduled_tasks()
             logger.info("任务调度器初始化完成")
             
-            logger.success("所有组件初始化完成")
+            logger.info("所有组件初始化完成")
             return True
             
         except Exception as e:
+            import traceback
             logger.error(f"初始化失败: {e}")
+            logger.error(f"详细错误信息:\n{traceback.format_exc()}")
             return False
     
     def setup_scheduled_tasks(self):
@@ -162,7 +186,7 @@ class WeChatSummaryBot:
     def on_login(self, bot: Bot, event):
         """登录成功回调"""
         user_info = bot.get_self_info()
-        logger.success(f"微信登录成功: {getattr(user_info, 'name', 'Unknown')}")
+        logger.info(f"微信登录成功: {getattr(user_info, 'name', 'Unknown')}")
         
         # 发送启动通知
         if self.config.alert_config.target_user:

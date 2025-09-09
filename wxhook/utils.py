@@ -3,6 +3,7 @@ import json
 import typing
 import pathlib
 import subprocess
+import platform
 
 import psutil
 import xmltodict
@@ -15,9 +16,40 @@ FAKER = TOOLS / "faker.exe"
 
 
 def start_wechat_with_inject(port: int) -> typing.Tuple[int, str]:
-    result = subprocess.run(f"{START_WECHAT} {DLL} {port}", capture_output=True, text=True)
-    code, output = result.stdout.split(",")
-    return int(code), output
+    try:
+        # 检查运行环境
+        if platform.system() != "Windows":
+            return 1, f"WeChatHook 仅支持Windows系统，当前系统: {platform.system()}"
+        
+        # 检查必要文件是否存在
+        if not START_WECHAT.exists():
+            return 1, f"start-wechat.exe 文件不存在: {START_WECHAT}"
+        
+        if not DLL.exists():
+            return 1, f"wxhook.dll 文件不存在: {DLL}"
+        
+        result = subprocess.run(f"{START_WECHAT} {DLL} {port}", capture_output=True, text=True, timeout=30)
+        
+        if result.returncode != 0:
+            error_msg = f"start-wechat.exe 执行失败 (返回码: {result.returncode})"
+            if result.stderr:
+                error_msg += f", 错误信息: {result.stderr}"
+            return 1, error_msg
+        
+        if not result.stdout or "," not in result.stdout:
+            return 1, f"start-wechat.exe 输出格式异常: {result.stdout}"
+        
+        code, output = result.stdout.split(",")
+        return int(code), output
+        
+    except subprocess.TimeoutExpired:
+        return 1, "start-wechat.exe 执行超时"
+    except FileNotFoundError as e:
+        return 1, f"文件未找到: {e}"
+    except ValueError as e:
+        return 1, f"输出解析失败: {e}, 原始输出: {result.stdout if 'result' in locals() else 'N/A'}"
+    except Exception as e:
+        return 1, f"启动WeChat失败: {e}"
 
 
 def fake_wechat_version(pid: int, old_version: str, new_version: str) -> int:
@@ -34,8 +66,38 @@ def get_processes(process_name: str) -> typing.List[psutil.Process]:
 
 
 def get_pid(port: int) -> typing.Tuple[int, int]:
-    output = subprocess.run(f"netstat -ano | findStr \"{port}\"", capture_output=True, text=True, shell=True).stdout
-    return 0, int(output.split("\n")[0].split("LISTENING")[-1])
+    try:
+        # 检查运行环境
+        if platform.system() != "Windows":
+            return 1, f"此功能仅支持Windows系统，当前系统: {platform.system()}"
+        
+        # 使用netstat查找端口占用的进程
+        result = subprocess.run(f"netstat -ano | findStr \"{port}\"", capture_output=True, text=True, shell=True, timeout=10)
+        output = result.stdout.strip()
+        
+        if not output:
+            return 1, f"端口 {port} 未被使用"
+        
+        lines = output.split("\n")
+        for line in lines:
+            if "LISTENING" in line:
+                parts = line.split()
+                if len(parts) > 0:
+                    try:
+                        # 最后一列应该是PID
+                        pid = int(parts[-1])
+                        return 0, pid
+                    except (ValueError, IndexError):
+                        continue
+        
+        return 1, f"无法从netstat输出中解析PID: {output}"
+        
+    except subprocess.TimeoutExpired:
+        return 1, "netstat 命令执行超时"
+    except FileNotFoundError:
+        return 1, "netstat 命令不可用 (可能不在Windows环境)"
+    except Exception as e:
+        return 1, f"获取进程PID失败: {e}"
 
 
 def parse_xml(xml: str) -> dict:
