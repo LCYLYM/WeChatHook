@@ -82,10 +82,10 @@ def check_configuration():
         target_user = config.get('alert_config', {}).get('target_user', '')
         
         issues = []
-        if not api_key or api_key in ['your_openai_api_key_here', 'test_key']:
+        if not api_key or api_key in ['your_openai_api_key_here', 'test_key'] or api_key.startswith('sk-demo'):
             issues.append("OpenAI API Key 未配置或为默认值")
         
-        if not target_user or target_user in ['your_wechat_id_here', 'test_user']:
+        if not target_user or target_user in ['your_wechat_id_here', 'test_user'] or target_user.startswith('demo_'):
             issues.append("推送目标用户未配置或为默认值")
         
         if issues:

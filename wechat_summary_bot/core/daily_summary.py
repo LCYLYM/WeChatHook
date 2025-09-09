@@ -137,7 +137,7 @@ class DailySummaryGenerator:
             result = self.bot.send_text(self.target_user, report_content)
             
             if hasattr(result, 'code') and result.code == 200:
-                logger.success(f"每日总结报告发送成功: {date_str}")
+                logger.info(f"每日总结报告发送成功: {date_str}")
             else:
                 logger.error(f"每日总结报告发送失败: {getattr(result, 'msg', '未知错误')}")
                 

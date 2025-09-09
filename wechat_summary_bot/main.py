@@ -143,7 +143,7 @@ class WeChatSummaryBot:
             self.setup_scheduled_tasks()
             logger.info("任务调度器初始化完成")
             
-            logger.success("所有组件初始化完成")
+            logger.info("所有组件初始化完成")
             return True
             
         except Exception as e:
@@ -186,7 +186,7 @@ class WeChatSummaryBot:
     def on_login(self, bot: Bot, event):
         """登录成功回调"""
         user_info = bot.get_self_info()
-        logger.success(f"微信登录成功: {getattr(user_info, 'name', 'Unknown')}")
+        logger.info(f"微信登录成功: {getattr(user_info, 'name', 'Unknown')}")
         
         # 发送启动通知
         if self.config.alert_config.target_user:

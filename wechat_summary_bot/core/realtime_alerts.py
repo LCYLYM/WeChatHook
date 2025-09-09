@@ -109,7 +109,7 @@ class RealtimeAlertEngine:
                         urgency_score=analysis_result.urgency_score
                     )
                     self.db.save_realtime_alert(alert)
-                    logger.success(f"实时推送完成并记录: {trigger_message.chat_name}")
+                    logger.info(f"实时推送完成并记录: {trigger_message.chat_name}")
             else:
                 logger.debug(f"消息未达到推送阈值: 紧急度{analysis_result.urgency_score} < {self.config.urgency_threshold}")
                 
@@ -128,7 +128,7 @@ class RealtimeAlertEngine:
             result = self.bot.send_text(self.target_user, push_content)
             
             if hasattr(result, 'code') and result.code == 200:
-                logger.success(f"实时推送成功: {trigger_msg.chat_name} - {trigger_msg.sender_name}")
+                logger.info(f"实时推送成功: {trigger_msg.chat_name} - {trigger_msg.sender_name}")
                 return True
             else:
                 error_msg = getattr(result, 'msg', '未知错误')
@@ -199,7 +199,7 @@ class RealtimeAlertEngine:
             result = self.bot.send_text(self.target_user, test_content)
             
             if hasattr(result, 'code') and result.code == 200:
-                logger.success("测试推送发送成功")
+                logger.info("测试推送发送成功")
                 return True
             else:
                 logger.error(f"测试推送发送失败: {getattr(result, 'msg', '未知错误')}")
