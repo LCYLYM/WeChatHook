@@ -121,7 +121,37 @@ def start_bot():
         print("\n👋 用户取消，机器人已停止")
         return True
     except Exception as e:
-        print(f"❌ 启动失败: {e}")
+        error_message = str(e)
+        print(f"\n❌ 启动失败: {error_message}")
+        
+        # 根据错误类型提供具体的解决建议
+        if "未发现微信进程" in error_message:
+            print("\n🔧 解决方案:")
+            print("1. 启动微信PC版并完成登录")
+            print("2. 确保微信版本为3.9.5.81（推荐版本）")
+            print("3. 检查微信是否正常运行（能收发消息）")
+        elif "仅支持Windows系统" in error_message:
+            print("\n🔧 解决方案:")
+            print("1. WeChatHook仅支持Windows操作系统")
+            print("2. 请在Windows环境中运行此程序")
+        elif "start-wechat.exe" in error_message or "wxhook.dll" in error_message:
+            print("\n🔧 解决方案:")
+            print("1. 检查wxhook/tools/目录下的文件是否完整")
+            print("2. 重新下载完整的程序包")
+            print("3. 检查杀毒软件是否误删了文件")
+            print("4. 尝试以管理员权限运行")
+        elif "OpenAI API Key" in error_message:
+            print("\n🔧 解决方案:")
+            print("1. 编辑配置文件设置OpenAI API Key")
+            print("2. 配置文件路径: ./wechat_summary_bot/config/bot_config.json")
+        else:
+            print("\n🔧 通用解决方案:")
+            print("1. 检查微信PC版是否正常启动")
+            print("2. 尝试以管理员权限运行程序")
+            print("3. 检查防火墙和杀毒软件设置")
+            print("4. 重新下载完整程序包")
+        
+        print(f"\n📋 详细错误信息:")
         import traceback
         traceback.print_exc()
         return False

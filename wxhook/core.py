@@ -68,15 +68,31 @@ class Bot:
         self.IMAGE_SAVE_PATH = None
         self.VIDEO_SAVE_PATH = None
 
+        # 首先检查是否有WeChat进程在运行
+        wechat_processes = [p for p in psutil.process_iter(['pid', 'name']) if 'wechat' in p.info['name'].lower()]
+        if not wechat_processes:
+            raise Exception("未发现微信进程，请先启动微信PC版客户端")
+
         try:
             code, output = start_wechat_with_inject(self.remote_port)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"直接注入失败: {e}, 尝试检测现有进程...")
             code, output = get_pid(self.remote_port)
 
         if code == 1:
-            raise Exception(output)
+            # 提供更详细的错误信息和解决方案
+            error_msg = f"{output}\n\n解决方案:\n"
+            error_msg += "1. 确保微信PC版已启动并登录\n"
+            error_msg += "2. 检查微信版本是否为3.9.5.81（推荐版本）\n"
+            error_msg += "3. 尝试以管理员权限运行程序\n"
+            error_msg += "4. 关闭杀毒软件可能的拦截\n"
+            error_msg += "5. 确保程序文件完整且未被修改"
+            raise Exception(error_msg)
 
-        self.process = psutil.Process(int(output))
+        try:
+            self.process = psutil.Process(int(output))
+        except (ValueError, psutil.NoSuchProcess) as e:
+            raise Exception(f"无法连接到微信进程 (PID: {output}): {e}")
 
         if self.faked_version is not None:
             if fake_wechat_version(self.process.pid, self.version, faked_version) == 0:
